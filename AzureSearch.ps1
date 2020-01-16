@@ -20,8 +20,9 @@ Function Help() {
     @(
         [PsCustomObject]@{Command="Help";Description="Show this table"},
         [PsCustomObject]@{Command="Create";Description="Create new a new index"},
-        [PsCustomObject]@{Command="Load";Description="Load data into the index"},
-        [PsCustomObject]@{Command="Search";Description="Query the index"},
+        [PsCustomObject]@{Command="Load";Description="Loads the documents into the index"},
+        [PsCustomObject]@{Command="Weights";Description="Adds weight scoring to the index"},
+        [PsCustomObject]@{Command="Search";Description="Searches the index documents"},
         [PsCustomObject]@{Command="Exit";Description="Exit the program"}
     )
 
@@ -66,6 +67,44 @@ Function Load() {
     Invoke-RestMethod -Uri $Url -Headers $global:Headers -Method Post -Body $body
 }
 
+Function Weights() {
+
+    $Url = $global:UrlBase + '/indexes/' + $global:IndexName + '?api-version=2019-05-06'
+
+    Write-Host "Loading Index..."
+
+    $response = Invoke-RestMethod -Uri $Url -Headers $global:Headers -Method Get | ConvertTo-Json -depth 32
+
+    Write-Host "Updating Index..."
+
+    $obj = $response | ConvertFrom-Json
+
+    $json = @"
+        {  
+          "name": "Default",  
+          "text": {  
+            "weights": { 
+              "City": 10,
+              "Region": 5,
+              "Country": 1
+            }
+          },  
+          "functions": [],  
+          "functionAggregation": "sum"
+        }
+"@
+    $xx = $json | ConvertFrom-Json;
+
+    $obj.scoringProfiles = @($xx)
+    $obj.defaultScoringProfile = "Default"
+
+    $body = $obj | ConvertTo-Json -depth 32
+
+    Write-Host "Sending Update..."
+
+    Invoke-RestMethod -Uri $Url -Headers $global:Headers -Method Put -Body $body
+}
+
 Function Main() {
     Init
     Help
@@ -79,6 +118,7 @@ Function Main() {
             "exit" { $run = $false; Break }
             "create" { Create; Break }
             "load" { Load; Break }
+            "weights" { Weights; Break }
             default { Write-Host "Invalid Command." }
         }
     }
