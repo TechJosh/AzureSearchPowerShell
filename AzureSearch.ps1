@@ -105,6 +105,23 @@ Function Weights() {
     Invoke-RestMethod -Uri $Url -Headers $global:Headers -Method Put -Body $body
 }
 
+Function Search() {
+
+    $term = Read-Host "Enter Search Term (use * for wildcard)"
+
+    $Url = $global:UrlBase + '/indexes/' + $global:IndexName + '/docs?api-version=2019-05-06&search=' + $term + '&$count=true'
+
+    $results = Invoke-RestMethod -Uri $url -Headers $headers | ConvertTo-Json
+
+    $obj = $results | ConvertFrom-Json
+
+    $count = $obj."@odata.count"
+
+    Write-Host "Displaying $count results"
+
+    $obj.value  | ForEach-Object {$_} | Format-Table -AutoSize
+}
+
 Function Main() {
     Init
     Help
@@ -119,6 +136,7 @@ Function Main() {
             "create" { Create; Break }
             "load" { Load; Break }
             "weights" { Weights; Break }
+            "search" { Search; Break }
             default { Write-Host "Invalid Command." }
         }
     }
